@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SnapLink Dashboard — Link Management</title>
+  <meta name="description" content="Manage all your shortened links — view, edit, delete, search, and track analytics from one place." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- Background Orbs -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- Navigation -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <div class="nav-logo">
+        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+          <div class="logo-icon">⚡</div>
+          <span class="logo-text">SnapLink</span>
+        </a>
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/dashboard" class="nav-link active">Dashboard</a>
+        <div id="auth-nav" style="display:inline-flex;gap:1.5rem;margin-left:1rem;"></div>
+      </div>
+      <div class="nav-badge">Link Manager</div>
+    </div>
+  </nav>
+
+  <!-- Dashboard Main -->
+  <main class="dashboard-main">
+
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+      <div class="dashboard-title-row">
+        <div>
+          <div class="section-badge" style="margin-bottom:12px;">Link Management</div>
+          <h1 class="dashboard-title">Your <span class="gradient-text">Links</span></h1>
+          <p class="dashboard-subtitle">Manage, edit, and track all your shortened URLs in one place.</p>
+        </div>
+        <a href="/" class="btn-create-link">
+          <span>＋</span> Create New Link
+        </a>
+      </div>
+
+      <!-- Stats Banner -->
+      <div class="db-stats-banner" id="db-stats-banner">
+        <div class="db-stat">
+          <span class="db-stat-num" id="db-stat-total">—</span>
+          <span class="db-stat-label">Total Links</span>
+        </div>
+        <div class="db-stat-divider"></div>
+        <div class="db-stat">
+          <span class="db-stat-num" id="db-stat-clicks">—</span>
+          <span class="db-stat-label">Total Clicks</span>
+        </div>
+        <div class="db-stat-divider"></div>
+        <div class="db-stat">
+          <span class="db-stat-num" id="db-stat-active">—</span>
+          <span class="db-stat-label">Active Links</span>
+        </div>
+        <div class="db-stat-divider"></div>
+        <div class="db-stat">
+          <span class="db-stat-num" id="db-stat-expired">—</span>
+          <span class="db-stat-label">Expired Links</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar: Search + Filter + Bulk Upload Toggle -->
+    <div class="db-toolbar">
+      <div class="db-search-wrapper">
+        <span class="db-search-icon">🔍</span>
+        <input
+          type="text"
+          id="db-search"
+          class="db-search-input"
+          placeholder="Search by URL or short code..."
+          oninput="debouncedSearch()"
+        />
+        <button class="db-search-clear" id="db-search-clear" onclick="clearSearch()" title="Clear">✕</button>
+      </div>
+
+      <div class="db-filter-tabs">
+        <button class="db-filter-tab active" id="filter-all" onclick="setFilter('all')">All</button>
+        <button class="db-filter-tab" id="filter-active" onclick="setFilter('active')">Active</button>
+        <button class="db-filter-tab" id="filter-expired" onclick="setFilter('expired')">Expired</button>
+      </div>
+
+      <button class="btn-bulk-toggle" id="bulk-toggle-btn" onclick="toggleBulkPanel()">
+        📋 Bulk Shorten
+      </button>
+    </div>
+
+    <!-- Bulk Upload Panel -->
+    <div class="bulk-panel" id="bulk-panel">
+      <div class="bulk-panel-header">
+        <span>📋 Bulk URL Shortener</span>
+        <button class="close-panel-btn" onclick="toggleBulkPanel()">✕</button>
+      </div>
+      <p class="bulk-panel-hint">Paste up to 50 URLs below (one per line) or upload a CSV file.</p>
+      <div class="bulk-input-row">
+        <textarea
+          id="bulk-textarea"
+          class="bulk-textarea"
+          placeholder="https://example.com/page1&#10;https://example.com/page2&#10;https://another-site.com/long-url"
+          rows="6"
+        ></textarea>
+        <div class="bulk-upload-side">
+          <label class="csv-upload-label" for="csv-file-input">
+            <span>📁</span>
+            <span>Upload CSV</span>
+            <small>One URL per row</small>
+          </label>
+          <input type="file" id="csv-file-input" accept=".csv,.txt" style="display:none;" onchange="handleCSVUpload(event)" />
+          <button class="bulk-submit-btn" id="bulk-submit-btn" onclick="submitBulk()">
+            <span class="btn-text">Shorten All</span>
+            <span class="btn-icon">→</span>
+          </button>
+          <div class="bulk-count-info" id="bulk-count-info">0 URLs entered</div>
+        </div>
+      </div>
+      <!-- Bulk Results -->
+      <div class="bulk-results" id="bulk-results"></div>
+    </div>
+
+    <!-- Links Table Area -->
+    <div class="db-table-container" id="db-table-container">
+      <!-- Loading Skeleton -->
+      <div class="db-loading" id="db-loading">
+        <div class="db-skeleton" style="height:56px;margin-bottom:8px;"></div>
+        <div class="db-skeleton" style="height:56px;margin-bottom:8px;"></div>
+        <div class="db-skeleton" style="height:56px;margin-bottom:8px;"></div>
+        <div class="db-skeleton" style="height:56px;margin-bottom:8px;"></div>
+        <div class="db-skeleton" style="height:56px;"></div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="db-empty" id="db-empty" style="display:none;">
+        <div class="db-empty-icon">🔗</div>
+        <h3>No links found</h3>
+        <p>Create your first short link or adjust the search filter.</p>
+        <a href="/" class="btn-create-link" style="margin-top:16px;">Create Link</a>
+      </div>
+
+      <!-- Table -->
+      <table class="db-table" id="db-table" style="display:none;">
+        <thead>
+          <tr>
+            <th>Short Link</th>
+            <th>Destination URL</th>
+            <th>Clicks</th>
+            <th>Created</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="db-tbody"></tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="db-pagination" id="db-pagination"></div>
+    </div>
+
+  </main>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
+    <div class="modal-card" id="edit-modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title">✏️ Edit Link</h2>
+        <button class="modal-close" onclick="closeEditModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-short-code" />
+        <div class="modal-field">
+          <label for="edit-long-url">Destination URL</label>
+          <input type="url" id="edit-long-url" class="modal-input" placeholder="https://example.com/your-long-url" />
+        </div>
+        <div class="modal-field">
+          <label for="edit-alias">Custom Alias <span class="optional-badge">optional</span></label>
+          <div class="adv-input-wrapper" style="margin-top:8px;">
+            <span class="adv-prefix">snaplink.io/</span>
+            <input type="text" id="edit-alias" class="modal-input" placeholder="my-brand" maxlength="20" />
+          </div>
+          <small class="modal-hint">3–20 chars, letters/digits/hyphens/underscores only. Leave blank to keep current.</small>
+        </div>
+        <div class="modal-field">
+          <label for="edit-expiry">Expiry Date <span class="optional-badge">optional</span></label>
+          <input type="datetime-local" id="edit-expiry" class="modal-input" />
+          <small class="modal-hint">Leave blank to keep current expiry.</small>
+        </div>
+        <div class="modal-error" id="edit-error"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn-cancel" onclick="closeEditModal()">Cancel</button>
+        <button class="modal-btn-save" id="edit-save-btn" onclick="saveEdit()">
+          <span class="btn-text">Save Changes</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="delete-modal" onclick="closeDeleteModal(event)">
+    <div class="modal-card modal-card-sm" id="delete-modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title">🗑️ Delete Link</h2>
+        <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding-top:8px;">
+        <p style="color:var(--text-secondary);line-height:1.6;">
+          Are you sure you want to delete <strong id="delete-code-display" style="color:var(--text-primary);"></strong>?<br/>
+          This will remove the link and all its analytics. <strong style="color:#f87171;">This cannot be undone.</strong>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+        <button class="modal-btn-delete" id="delete-confirm-btn" onclick="confirmDelete()">
+          <span class="btn-text">Delete</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div class="modal-overlay" id="preview-modal" onclick="closePreviewModal(event)">
+    <div class="modal-card" id="preview-modal-card" style="max-width:960px;">
+      <div class="modal-header">
+        <h2 class="modal-title">🖼️ Preview Card</h2>
+        <button class="modal-close" onclick="closePreviewModal()">✕</button>
+      </div>
+      <div class="modal-body" style="text-align:center;padding:24px;">
+        <img id="preview-img" src="" alt="Preview card" style="max-width:100%;border-radius:12px;border:1px solid var(--border);" />
+        <div style="margin-top:16px;">
+          <a id="preview-download-btn" href="#" download="preview.png" class="modal-btn-save" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
+            ⬇ Download Preview Card
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div class="modal-overlay" id="auth-modal" onclick="closeAuthModal(event)">
+    <div class="modal-card" style="max-width:400px; padding: 32px 24px;">
+      
+      <div class="auth-tabs" id="auth-tabs-container" data-active="login">
+        <div class="auth-tab-slider"></div>
+        <button class="auth-tab-btn active" data-target="login" onclick="switchAuthTab('login')">Login</button>
+        <button class="auth-tab-btn" data-target="signup" onclick="switchAuthTab('signup')">Sign Up</button>
+      </div>
+
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <!-- Login & Signup share the same inputs for simplicity -->
+        <div class="auth-pane active" id="auth-pane-login">
+          <p style="text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:16px;">Welcome back to SnapLink.</p>
+        </div>
+        <div class="auth-pane" id="auth-pane-signup">
+          <p style="text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:16px;">Create a free robust SnapLink account.</p>
+        </div>
+
+        <div class="modal-field">
+          <label for="auth-email">Email Address</label>
+          <input type="email" id="auth-email" class="modal-input" required placeholder="you@example.com">
+        </div>
+        
+        <div class="modal-field">
+          <label for="auth-password">Password</label>
+          <div class="auth-input-container">
+            <input type="password" id="auth-password" class="modal-input" required style="padding-right:40px;" placeholder="••••••••">
+            <button type="button" class="auth-password-toggle" onclick="togglePasswordVisibility('auth-password', this)" title="Show password">👁</button>
+          </div>
+        </div>
+
+        <div id="auth-error-msg" class="modal-error" style="text-align:center;"></div>
+
+        <button type="submit" class="modal-btn-save" id="auth-submit-btn" style="width:100%; justify-content:center; margin-top:24px; padding: 14px;">
+          <span class="btn-text">Sign In</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/auth.js"></script>
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>

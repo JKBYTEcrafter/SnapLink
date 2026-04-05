@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SnapLink — Smart URL Shortener</title>
+  <meta name="description" content="Transform long, messy URLs into powerful short links with QR codes, analytics, and custom aliases. Industry-grade URL shortener." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- Background Orbs -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- Navigation -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <div class="nav-logo">
+        <div class="logo-icon">⚡</div>
+        <span class="logo-text">SnapLink</span>
+      </div>
+      <div class="nav-links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#analytics-section" class="nav-link">Analytics</a>
+        <div id="auth-nav" style="display:inline-flex;gap:1.5rem;">
+          <a href="/login" class="nav-link">Login</a>
+          <a href="/signup" class="nav-link">Sign Up</a>
+        </div>
+      </div>
+      <div class="nav-badge">Free & Open Source</div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        Production-Grade URL Shortener
+      </div>
+      <h1 class="hero-title">
+        Shorten. Share.<br />
+        <span class="gradient-text">Track Everything.</span>
+      </h1>
+      <p class="hero-subtitle">
+        Transform long URLs into powerful short links with built-in analytics,
+        QR codes, custom aliases, and real-time click tracking.
+      </p>
+
+      <!-- Main Shortener Card -->
+      <div class="shortener-card" id="shortener">
+        <div class="card-header">
+          <span class="card-header-icon">🔗</span>
+          <span>Shorten your URL</span>
+        </div>
+
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+          <button class="tab-btn active" id="tab-single" onclick="switchTab('single')">🔗 Single URL</button>
+          <button class="tab-btn" id="tab-bulk" onclick="switchTab('bulk')">📋 Bulk Shorten</button>
+        </div>
+
+        <!-- Single URL Tab -->
+        <div class="tab-pane active" id="pane-single">
+          <div class="input-group" id="url-input-group">
+            <div class="input-wrapper">
+              <span class="input-icon">🌐</span>
+              <input
+                type="url"
+                id="long-url"
+                class="url-input"
+                placeholder="Paste your long URL here..."
+                autocomplete="off"
+              />
+            </div>
+            <button class="shorten-btn" id="shorten-btn" onclick="shortenURL()">
+              <span class="btn-text">Shorten Now</span>
+              <span class="btn-icon">→</span>
+            </button>
+          </div>
+
+          <!-- Advanced Options Toggle -->
+          <div class="advanced-toggle" onclick="toggleAdvanced()">
+            <span id="advanced-arrow">▸</span>
+            <span>Advanced options (custom alias &amp; expiry)</span>
+          </div>
+
+          <div class="advanced-options" id="advanced-options">
+            <div class="advanced-row">
+              <div class="adv-input-group">
+                <label for="custom-alias">Custom Alias</label>
+                <div class="adv-input-wrapper">
+                  <span class="adv-prefix">snaplink.io/</span>
+                  <input type="text" id="custom-alias" placeholder="my-brand" maxlength="30" />
+                </div>
+              </div>
+              <div class="adv-input-group">
+                <label for="expiry-date">Expiry Date (optional)</label>
+                <input type="datetime-local" id="expiry-date" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bulk URL Tab -->
+        <div class="tab-pane" id="pane-bulk">
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Paste up to 50 URLs below (one per line):</p>
+          <textarea
+            id="bulk-home-textarea"
+            class="bulk-home-textarea"
+            placeholder="https://example.com/page1&#10;https://example.com/page2&#10;https://another-site.com/very-long-url"
+            rows="5"
+            oninput="updateBulkHomeCount()"
+          ></textarea>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <span id="bulk-home-count" style="font-size:12px;color:var(--text-dim);">0 URLs</span>
+            <button class="shorten-btn" id="bulk-home-btn" onclick="submitBulkHome()" style="padding:12px 24px;">
+              <span class="btn-text">Shorten All</span>
+              <span class="btn-icon">→</span>
+            </button>
+          </div>
+          <div class="bulk-home-results" id="bulk-home-results"></div>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-msg" id="error-msg"></div>
+
+        <!-- Result Card -->
+        <div class="result-card" id="result-card">
+          <div class="result-header">
+            <span class="result-badge">✅ Link Created!</span>
+            <span class="result-time" id="result-time"></span>
+          </div>
+          <div class="result-body">
+            <div class="result-short-url-row">
+              <div class="result-url-box">
+                <span class="result-label">Short Link</span>
+                <a class="result-short-url" id="result-short-url" href="#" target="_blank"></a>
+              </div>
+              <div class="result-actions">
+                <button class="action-btn copy-btn" id="copy-btn" onclick="copyURL()" title="Copy URL">
+                  <span>📋</span> Copy
+                </button>
+                <button class="action-btn qr-btn" id="qr-btn" title="View QR Code">
+                  <span>📱</span> QR Code
+                </button>
+                <button class="action-btn analytics-btn" id="analytics-btn" title="View Analytics">
+                  <span>📊</span> Analytics
+                </button>
+              </div>
+            </div>
+            <div class="result-original">
+              <span class="result-label">Original URL</span>
+              <span class="result-original-url" id="result-original-url"></span>
+            </div>
+          </div>
+
+          <!-- QR Code Panel -->
+          <div class="qr-panel" id="qr-panel">
+            <div class="qr-panel-header">
+              <span>📱 QR Code</span>
+              <button class="close-panel-btn" onclick="closeQR()">✕</button>
+            </div>
+            <div class="qr-image-container">
+              <img id="qr-image" src="" alt="QR Code" class="qr-image" />
+            </div>
+            <a id="qr-download" class="download-qr-btn" download="qrcode.png">⬇ Download QR Code</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-num" id="stat-links">∞</span>
+          <span class="stat-label">Links Shortened</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num">Base62</span>
+          <span class="stat-label">Encoding</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num">Redis</span>
+          <span class="stat-label">Cached</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num">Real-time</span>
+          <span class="stat-label">Analytics</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features-section" id="features">
+    <div class="section-container">
+      <div class="section-badge">Why SnapLink?</div>
+      <h2 class="section-title">Built for <span class="gradient-text">performance</span></h2>
+      <p class="section-subtitle">Enterprise-grade infrastructure with a delightful developer experience</p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Lightning Fast</h3>
+          <p>Redis-cached lookups deliver sub-millisecond redirect times. Your users never wait.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Deep Analytics</h3>
+          <p>Track clicks, device types, browsers, geo-location, and referrers in real-time.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>QR Code Generation</h3>
+          <p>Instantly generate QR codes for every short link. Perfect for print and offline use.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <h3>Rate Limited</h3>
+          <p>Per-IP rate limiting protects your service from abuse and ensures fair usage.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">✏️</div>
+          <h3>Custom Aliases</h3>
+          <p>Create memorable branded links with your own custom aliases and slugs.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⏰</div>
+          <h3>Link Expiry</h3>
+          <p>Set auto-expiring links for time-sensitive campaigns and promotions.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Analytics Lookup Section -->
+  <section class="analytics-section" id="analytics-section">
+    <div class="section-container">
+      <div class="section-badge">Link Intelligence</div>
+      <h2 class="section-title">Track your <span class="gradient-text">clicks</span></h2>
+      <p class="section-subtitle">Enter any short code to view detailed analytics and performance metrics</p>
+
+      <div class="analytics-lookup-card">
+        <div class="analytics-input-row">
+          <div class="analytics-input-wrapper">
+            <span class="input-icon">🔍</span>
+            <input
+              type="text"
+              id="analytics-code-input"
+              class="analytics-input"
+              placeholder="Enter short code (e.g. abc123)"
+            />
+          </div>
+          <button class="analytics-search-btn" onclick="lookupAnalytics()">
+            View Analytics
+          </button>
+        </div>
+
+        <!-- Analytics Results -->
+        <div class="analytics-results" id="analytics-results">
+          <!-- Stats Overview -->
+          <div class="analytics-stats-grid" id="analytics-stats-grid">
+            <div class="analytics-stat-card">
+              <div class="analytics-stat-icon">👆</div>
+              <div class="analytics-stat-info">
+                <span class="analytics-stat-num" id="stat-total-clicks">—</span>
+                <span class="analytics-stat-label">Total Clicks</span>
+              </div>
+            </div>
+            <div class="analytics-stat-card">
+              <div class="analytics-stat-icon">🌍</div>
+              <div class="analytics-stat-info">
+                <span class="analytics-stat-num" id="stat-countries">—</span>
+                <span class="analytics-stat-label">Countries</span>
+              </div>
+            </div>
+            <div class="analytics-stat-card">
+              <div class="analytics-stat-icon">📱</div>
+              <div class="analytics-stat-info">
+                <span class="analytics-stat-num" id="stat-top-device">—</span>
+                <span class="analytics-stat-label">Top Device</span>
+              </div>
+            </div>
+            <div class="analytics-stat-card">
+              <div class="analytics-stat-icon">🌐</div>
+              <div class="analytics-stat-info">
+                <span class="analytics-stat-num" id="stat-top-browser">—</span>
+                <span class="analytics-stat-label">Top Browser</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="charts-row">
+            <div class="chart-card">
+              <h4>Device Breakdown</h4>
+              <div class="bar-chart" id="device-chart"></div>
+            </div>
+            <div class="chart-card">
+              <h4>Browser Breakdown</h4>
+              <div class="bar-chart" id="browser-chart"></div>
+            </div>
+          </div>
+
+          <!-- Recent Clicks -->
+          <div class="recent-clicks-card">
+            <h4>Recent Clicks</h4>
+            <div class="clicks-table-wrapper">
+              <table class="clicks-table" id="clicks-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Device</th>
+                    <th>Browser</th>
+                    <th>Country</th>
+                    <th>City</th>
+                  </tr>
+                </thead>
+                <tbody id="clicks-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it Works -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="section-container">
+      <div class="section-badge">Simple Process</div>
+      <h2 class="section-title">How it <span class="gradient-text">works</span></h2>
+      <div class="steps-row">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <h3>Paste your URL</h3>
+          <p>Enter any long URL into the input field above. Add a custom alias if you want.</p>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <h3>Get your short link</h3>
+          <p>We generate a unique Base62 short code, cache it in Redis, and store it securely.</p>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <h3>Share &amp; track</h3>
+          <p>Share your link anywhere. Every click is tracked with device, geo, and browser info.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-logo">
+        <div class="logo-icon">⚡</div>
+        <span class="logo-text">SnapLink</span>
+      </div>
+      <p class="footer-tagline">Production-grade URL shortener built with FastAPI, Redis &amp; PostgreSQL</p>
+      <div class="footer-tech-stack">
+        <span class="tech-badge">FastAPI</span>
+        <span class="tech-badge">PostgreSQL</span>
+        <span class="tech-badge">Redis</span>
+        <span class="tech-badge">Celery</span>
+        <span class="tech-badge">Docker</span>
+      </div>
+      <p class="footer-copy">© 2025 SnapLink. Open Source &amp; Free Forever.</p>
+    </div>
+  </footer>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="spinner"></div>
+    <span>Creating your link...</span>
+  </div>
+
+  <!-- Auth Modal -->
+  <div class="modal-overlay" id="auth-modal" onclick="closeAuthModal(event)">
+    <div class="modal-card" style="max-width:400px; padding: 32px 24px;">
+      
+      <div class="auth-tabs" id="auth-tabs-container" data-active="login">
+        <div class="auth-tab-slider"></div>
+        <button class="auth-tab-btn active" data-target="login" onclick="switchAuthTab('login')">Login</button>
+        <button class="auth-tab-btn" data-target="signup" onclick="switchAuthTab('signup')">Sign Up</button>
+      </div>
+
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <!-- Login & Signup share the same inputs for simplicity -->
+        <div class="auth-pane active" id="auth-pane-login">
+          <p style="text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:16px;">Welcome back to SnapLink.</p>
+        </div>
+        <div class="auth-pane" id="auth-pane-signup">
+          <p style="text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:16px;">Create a free robust SnapLink account.</p>
+        </div>
+
+        <div class="modal-field">
+          <label for="auth-email">Email Address</label>
+          <input type="email" id="auth-email" class="modal-input" required placeholder="you@example.com">
+        </div>
+        
+        <div class="modal-field">
+          <label for="auth-password">Password</label>
+          <div class="auth-input-container">
+            <input type="password" id="auth-password" class="modal-input" required style="padding-right:40px;" placeholder="••••••••">
+            <button type="button" class="auth-password-toggle" onclick="togglePasswordVisibility('auth-password', this)" title="Show password">👁</button>
+          </div>
+        </div>
+
+        <div id="auth-error-msg" class="modal-error" style="text-align:center;"></div>
+
+        <button type="submit" class="modal-btn-save" id="auth-submit-btn" style="width:100%; justify-content:center; margin-top:24px; padding: 14px;">
+          <span class="btn-text">Sign In</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/auth.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
