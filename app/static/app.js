@@ -2,7 +2,7 @@
    SnapLink — Frontend Application Logic
    ===================================================== */
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = window.location.origin;
 
 let currentShortCode = null;
 let currentQrUrl = null;

@@ -1,0 +1,51 @@
+# Render Blueprint — SnapLink Deployment
+# https://render.com/docs/blueprint-spec
+
+services:
+  # --- API Web Service ---
+  - type: web
+    name: snaplink-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile.api
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: snaplink-db
+          property: connectionString
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: MACHINE_ID
+        value: 1
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: CELERY_RESULT_BACKEND
+        sync: false
+
+  # --- Celery Background Worker ---
+  - type: worker
+    name: snaplink-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile.worker
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: snaplink-db
+          property: connectionString
+      - key: REDIS_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: CELERY_RESULT_BACKEND
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+
+databases:
+  - name: snaplink-db
+    plan: free

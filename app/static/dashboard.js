@@ -2,7 +2,7 @@
    SnapLink Dashboard — JavaScript
    ===================================================== */
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = window.location.origin;
 
 // ---- State ----
 let currentPage = 1;
