@@ -1921,19 +1921,41 @@ body {
 
 .auth-input-container {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .auth-password-toggle {
   position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 12px;
   background: none;
   border: none;
   color: var(--text-dim);
   cursor: pointer;
   padding: 4px;
-  font-size: 14px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
 }
 
 .auth-password-toggle:hover { color: var(--text); }
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+  z-index: 10;
+}
+.modal-close:hover { color: var(--text); }
+
+.auth-pane h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}

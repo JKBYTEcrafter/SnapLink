@@ -44,6 +44,16 @@ async def get_db() -> AsyncSession:  # type: ignore[return]
 
 async def create_tables() -> None:
     """Create all ORM tables on startup (dev convenience; use Alembic for prod)."""
+    from sqlalchemy import text
     async with engine.begin() as conn:
         from app.database import models  # noqa: F401 — import triggers table registration
-        await conn.run_sync(Base.metadata.create_all)
+        # Use checkfirst=True (which is already the default) but also
+        # catch any integrity errors that can occur with PostgreSQL type conflicts
+        try:
+            await conn.run_sync(Base.metadata.create_all, checkfirst=True)
+        except Exception as e:
+            # If tables already exist, that's fine
+            if "already exists" in str(e) or "duplicate key" in str(e):
+                pass
+            else:
+                raise

@@ -2,7 +2,15 @@ from pydantic import BaseModel, EmailStr, Field
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str = Field(..., min_length=8, description="Password must be at least 8 characters")
+    password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp_code: str
+    new_password: str
 
 class UserLogin(BaseModel):
     email: EmailStr

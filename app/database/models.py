@@ -73,3 +73,18 @@ class Analytics(Base):
 
     def __repr__(self) -> str:
         return f"<Analytics id={self.id} short_code='{self.short_code}'>"
+
+
+class PasswordResetOTP(Base):
+    """Stores OTP codes for password recovery."""
+
+    __tablename__ = "password_reset_otps"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    otp_code: Mapped[str] = mapped_column(String(6), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    is_used: Mapped[bool] = mapped_column(Integer, default=0, nullable=False)  # Using Integer for boolean if needed, or just bool
+
+    def __repr__(self) -> str:
+        return f"<PasswordResetOTP email='{self.email}' otp='{self.otp_code}'>"

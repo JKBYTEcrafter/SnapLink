@@ -28,8 +28,8 @@
         <a href="#features" class="nav-link">Features</a>
         <a href="#analytics-section" class="nav-link">Analytics</a>
         <div id="auth-nav" style="display:inline-flex;gap:1.5rem;">
-          <a href="/login" class="nav-link">Login</a>
-          <a href="/signup" class="nav-link">Sign Up</a>
+          <a href="#" class="nav-link" onclick="openAuthModal('login')">Login</a>
+          <a href="#" class="nav-link" onclick="openAuthModal('signup')">Sign Up</a>
         </div>
       </div>
       <div class="nav-badge">Free & Open Source</div>
@@ -389,40 +389,96 @@
   <div class="modal-overlay" id="auth-modal" onclick="closeAuthModal(event)">
     <div class="modal-card" style="max-width:400px; padding: 32px 24px;">
       
+      <!-- Close Button -->
+      <button class="modal-close" onclick="closeAuthModal()" style="position:absolute; top:16px; right:16px;">✕</button>
+
       <div class="auth-tabs" id="auth-tabs-container" data-active="login">
         <div class="auth-tab-slider"></div>
         <button class="auth-tab-btn active" data-target="login" onclick="switchAuthTab('login')">Login</button>
         <button class="auth-tab-btn" data-target="signup" onclick="switchAuthTab('signup')">Sign Up</button>
       </div>
 
+      <!-- Main Login/Signup Form -->
       <form id="auth-form" onsubmit="handleAuthSubmit(event)">
-        <!-- Login & Signup share the same inputs for simplicity -->
         <div class="auth-pane active" id="auth-pane-login">
           <p style="text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:16px;">Welcome back to SnapLink.</p>
         </div>
         <div class="auth-pane" id="auth-pane-signup">
-          <p style="text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:16px;">Create a free robust SnapLink account.</p>
+          <p style="text-align:center; color:var(--text-muted); font-size:14px; margin-bottom:16px;">Create a free SnapLink account.</p>
         </div>
 
-        <div class="modal-field">
-          <label for="auth-email">Email Address</label>
-          <input type="email" id="auth-email" class="modal-input" required placeholder="you@example.com">
-        </div>
-        
-        <div class="modal-field">
-          <label for="auth-password">Password</label>
-          <div class="auth-input-container">
-            <input type="password" id="auth-password" class="modal-input" required style="padding-right:40px;" placeholder="••••••••">
-            <button type="button" class="auth-password-toggle" onclick="togglePasswordVisibility('auth-password', this)" title="Show password">👁</button>
+        <div id="auth-main-fields">
+          <div class="modal-field">
+            <label for="auth-email">Email Address</label>
+            <input type="email" id="auth-email" class="modal-input" required placeholder="you@example.com">
+          </div>
+          
+          <div class="modal-field">
+            <label for="auth-password">Password</label>
+            <div class="auth-input-container">
+              <input type="password" id="auth-password" class="modal-input" required style="padding-right:40px;" placeholder="••••••••">
+              <button type="button" class="auth-password-toggle" onclick="togglePasswordVisibility('auth-password', this)" title="Show password">👁</button>
+            </div>
+          </div>
+
+          <div style="text-align:right; margin-top:-8px; margin-bottom:16px;">
+            <a href="#" onclick="switchAuthTab('forgot')" style="font-size:12px; color:var(--primary-light); text-decoration:none;">Forgot Password?</a>
           </div>
         </div>
 
         <div id="auth-error-msg" class="modal-error" style="text-align:center;"></div>
 
-        <button type="submit" class="modal-btn-save" id="auth-submit-btn" style="width:100%; justify-content:center; margin-top:24px; padding: 14px;">
+        <button type="submit" class="modal-btn-save" id="auth-submit-btn" style="width:100%; justify-content:center; margin-top:8px; padding: 14px;">
           <span class="btn-text">Sign In</span>
         </button>
       </form>
+
+      <!-- Forgot Password Flow (Initially Hidden) -->
+      <div class="auth-pane" id="auth-pane-forgot" style="display:none;">
+        <h3 style="text-align:center; margin-bottom:12px; font-family:'Space Grotesk';">Recovery</h3>
+        <p style="text-align:center; color:var(--text-muted); font-size:13px; margin-bottom:20px;">Enter your email to receive a 6-digit OTP.</p>
+        
+        <div class="modal-field">
+          <label for="forgot-email">Registered Email</label>
+          <input type="email" id="forgot-email" class="modal-input" placeholder="you@example.com">
+        </div>
+
+        <div id="forgot-error-msg" class="modal-error" style="text-align:center;"></div>
+
+        <button onclick="handleForgotSubmit()" class="modal-btn-save" id="forgot-submit-btn" style="width:100%; justify-content:center; margin-top:12px;">
+          <span class="btn-text">Send OTP</span>
+        </button>
+        
+        <div style="text-align:center; margin-top:16px;">
+          <a href="#" onclick="switchAuthTab('login')" style="font-size:13px; color:var(--text-dim); text-decoration:none;">← Back to Login</a>
+        </div>
+      </div>
+
+      <!-- Reset Password Flow (OTP Verification) -->
+      <div class="auth-pane" id="auth-pane-reset" style="display:none;">
+        <h3 style="text-align:center; margin-bottom:12px; font-family:'Space Grotesk';">Reset Password</h3>
+        <p style="text-align:center; color:var(--text-muted); font-size:13px; margin-bottom:20px;">Please check your server console for the OTP.</p>
+        
+        <div class="modal-field">
+          <label for="reset-otp">6-Digit OTP</label>
+          <input type="text" id="reset-otp" class="modal-input" maxlength="6" placeholder="123456" style="text-align:center; letter-spacing:4px; font-weight:bold;">
+        </div>
+
+        <div class="modal-field">
+          <label for="reset-new-password">New Password</label>
+          <div class="auth-input-container">
+            <input type="password" id="reset-new-password" class="modal-input" style="padding-right:40px;" placeholder="••••••••">
+            <button type="button" class="auth-password-toggle" onclick="togglePasswordVisibility('reset-new-password', this)" title="Show password">👁</button>
+          </div>
+        </div>
+
+        <div id="reset-error-msg" class="modal-error" style="text-align:center;"></div>
+
+        <button onclick="handleResetSubmit()" class="modal-btn-save" id="reset-submit-btn" style="width:100%; justify-content:center; margin-top:12px;">
+          <span class="btn-text">Update Password</span>
+        </button>
+      </div>
+
     </div>
   </div>
 

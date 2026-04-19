@@ -11,15 +11,24 @@ SECRET_KEY = os.getenv("JWT_SECRET", "super-secret-key-for-dev-only")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import hashlib
+import bcrypt
+
+
+def _pre_hash(password: str) -> str:
+    """SHA-256 pre-hash so any password length works with bcrypt's 72-byte limit."""
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    pre = _pre_hash(plain_password).encode("utf-8")
+    return bcrypt.checkpw(pre, hashed_password.encode("utf-8"))
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    pre = _pre_hash(password).encode("utf-8")
+    hashed = bcrypt.hashpw(pre, bcrypt.gensalt())
+    return hashed.decode("utf-8")
 
 
 def create_access_token(data: dict) -> str:
