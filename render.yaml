@@ -6,7 +6,8 @@ services:
   - type: web
     name: snaplink-api
     runtime: docker
-    dockerfilePath: ./Dockerfile.api
+    dockerfilePath: ./docker/Dockerfile.api
+    dockerContext: .
     plan: free
     envVars:
       - key: DATABASE_URL
@@ -25,26 +26,6 @@ services:
         sync: false
       - key: CELERY_RESULT_BACKEND
         sync: false
-
-  # --- Celery Background Worker ---
-  - type: worker
-    name: snaplink-worker
-    runtime: docker
-    dockerfilePath: ./Dockerfile.worker
-    plan: free
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: snaplink-db
-          property: connectionString
-      - key: REDIS_URL
-        sync: false
-      - key: CELERY_BROKER_URL
-        sync: false
-      - key: CELERY_RESULT_BACKEND
-        sync: false
-      - key: ENVIRONMENT
-        value: production
 
 databases:
   - name: snaplink-db
