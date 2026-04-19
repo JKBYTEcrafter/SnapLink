@@ -22,7 +22,7 @@ def init_redis(url: str | None = None) -> None:
     """Initialise the module-level Redis client. Call once at startup."""
     global _redis
     _redis = aioredis.from_url(
-        url or settings.redis_url,
+        url or settings.validated_redis_url,
         encoding="utf-8",
         decode_responses=True,
         max_connections=20,

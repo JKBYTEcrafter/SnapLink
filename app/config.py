@@ -36,6 +36,17 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
+    @property
+    def validated_redis_url(self) -> str:
+        """Ensure the Redis URL has the correct scheme."""
+        url = self.redis_url
+        if not url.startswith(("redis://", "rediss://", "unix://")):
+            # Fallback to local if someone passes an empty string by accident in env vars
+            if not url.strip():
+                return "redis://localhost:6379/0"
+            raise ValueError(f"Invalid REDIS_URL format. Must start with redis:// or rediss://. Got: '{url}'")
+        return url
+
     # Celery
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"
