@@ -28,15 +28,13 @@ COPY --from=builder /root/.local /root/.local
 
 # Copy source
 COPY app/ ./app/
-COPY .env.example .env
 
 ENV PATH="/root/.local/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PORT=8000
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Render sets PORT env var; use shell form to expand $PORT
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
