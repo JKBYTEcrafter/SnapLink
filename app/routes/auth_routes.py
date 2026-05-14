@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import Request
 
 from app.database.database import get_db
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/signup", response_model=UserProfile, status_code=status.HTTP_201_CREATED)
-async def signup(payload: UserCreate, db: AsyncSession = Depends(get_db)) -> UserProfile:
+async def signup(payload: UserCreate, db: AsyncIOMotorDatabase = Depends(get_db)) -> UserProfile:
     """Create a new user."""
     try:
         user = await auth_service.create_user(db, payload)
@@ -26,7 +26,7 @@ async def signup(payload: UserCreate, db: AsyncSession = Depends(get_db)) -> Use
         )
 
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)) -> TokenResponse:
+async def login(payload: UserLogin, db: AsyncIOMotorDatabase = Depends(get_db)) -> TokenResponse:
     """Authenticate and get a token."""
     try:
         user = await auth_service.authenticate_user(db, payload)
@@ -39,7 +39,7 @@ async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)) -> Token
         )
 
 @router.get("/me", response_model=UserProfile)
-async def get_me(request: Request, db: AsyncSession = Depends(get_db)) -> UserProfile:
+async def get_me(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)) -> UserProfile:
     """Get current user profile."""
     user_id = get_current_user_optional(request)
     if not user_id:
@@ -53,17 +53,16 @@ async def get_me(request: Request, db: AsyncSession = Depends(get_db)) -> UserPr
     return UserProfile(id=user.id, email=user.email)
 
 @router.post("/forgot-password")
-async def forgot_password(payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+async def forgot_password(payload: ForgotPasswordRequest, db: AsyncIOMotorDatabase = Depends(get_db)):
     """Request a password reset OTP."""
     try:
         await auth_service.create_password_reset_otp(db, payload)
         return {"message": "If an account exists, an OTP has been sent."}
     except ValueError as exc:
-        # We disclose errors here to help the user test the mock flow easily
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 @router.post("/reset-password")
-async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+async def reset_password(payload: ResetPasswordRequest, db: AsyncIOMotorDatabase = Depends(get_db)):
     """Reset password using the OTP."""
     try:
         await auth_service.reset_password_with_otp(db, payload)

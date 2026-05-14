@@ -11,8 +11,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 from app.config import get_settings
-from app.database.database import create_tables
-from app.services.cache_service import close_redis, init_redis
+from app.database.database import close_db, create_indexes, init_db
 from app.utils.id_generator import init_generator
 
 settings = get_settings()
@@ -34,15 +33,15 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     # Startup
     logger.info("Starting URL Shortener Service...")
     init_generator(machine_id=settings.machine_id)
-    init_redis(url=settings.redis_url)
-    await create_tables()
+    init_db()
+    await create_indexes()
     logger.info("Service ready.")
 
     yield
 
     # Shutdown
     logger.info("Shutting down URL Shortener Service...")
-    await close_redis()
+    await close_db()
 
 
 # ---------------------------------------------------------------------------
@@ -53,10 +52,10 @@ app = FastAPI(
     title="SnapLink API",
     description=(
         "A production-grade distributed URL shortener with Base62 encoding, "
-        "Redis caching, async analytics, rate limiting, QR code generation, "
+        "MongoDB caching, async analytics, rate limiting, QR code generation, "
         "bulk shortening, link management dashboard, and social preview cards."
     ),
-    version="2.0.0",
+    version="3.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
@@ -104,7 +103,7 @@ app.include_router(preview_routes.router)     # GET /preview/{code}
 
 @app.get("/health", tags=["System"], summary="Health check")
 async def health_check() -> dict:
-    return {"status": "ok", "service": "snaplink", "version": "2.0.0"}
+    return {"status": "ok", "service": "snaplink", "version": "3.0.0"}
 
 
 # ---------------------------------------------------------------------------

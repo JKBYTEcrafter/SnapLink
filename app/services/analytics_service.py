@@ -1,73 +1,46 @@
 """
-Analytics event producer.
-Pushes click events to the Celery task queue (Redis broker) asynchronously
-so that analytics processing NEVER blocks the redirect response.
+Analytics event writer — replaces the Redis/Celery queue approach.
+
+Instead of pushing to a Redis queue for a Celery worker to consume,
+we write analytics events directly to MongoDB in a fire-and-forget
+asyncio background task. This is simpler, requires no extra process,
+and is fast enough for this use case.
 """
 import logging
+from datetime import datetime, timezone
 
-from app.services.cache_service import get_redis
+from app.database.database import get_motor_db
 
 logger = logging.getLogger(__name__)
-
-_ANALYTICS_QUEUE = "celery"  # default Celery queue name
 
 
 async def push_analytics_event(event: dict) -> None:
     """
-    Serialize and push an analytics event to the Celery Redis queue.
+    Persist a click analytics event directly to the MongoDB `analytics` collection.
 
-    The Celery worker (worker/tasks.py) picks this up and writes to DB.
-    This is a fire-and-forget operation — failures are logged and swallowed
-    to ensure zero latency impact on redirect.
+    This is called inside an asyncio.ensure_future() in url_routes.py,
+    so it runs as a fire-and-forget background coroutine and does NOT
+    block the redirect response.
 
     Args:
-        event: Dict containing click metadata (ip, user_agent, short_code, etc.)
+        event: Dict containing click metadata (short_code, ip_address,
+               user_agent, device_type, browser, os, geo_country, geo_city, referer).
     """
-    import json
-    import uuid
-
     try:
-        redis = get_redis()
-
-        # Build a Celery-compatible task message
-        task_id = str(uuid.uuid4())
-        message = {
-            "id": task_id,
-            "task": "worker.tasks.process_analytics_event",
-            "args": [event],
-            "kwargs": {},
-            "retries": 0,
-            "eta": None,
-            "expires": None,
-            "utc": True,
-            "callbacks": None,
-            "errbacks": None,
-            "timelimit": [None, None],
-            "taskset": None,
-            "chord": None,
+        db = get_motor_db()
+        doc = {
+            "short_code": event.get("short_code", ""),
+            "timestamp": datetime.now(tz=timezone.utc),
+            "ip_address": event.get("ip_address"),
+            "user_agent": event.get("user_agent"),
+            "device_type": event.get("device_type"),
+            "browser": event.get("browser"),
+            "os": event.get("os"),
+            "geo_country": event.get("geo_country"),
+            "geo_city": event.get("geo_city"),
+            "referer": event.get("referer"),
         }
-
-        # Wrap in Celery v2 protocol envelope
-        envelope = {
-            "body": json.dumps(message),
-            "content-encoding": "utf-8",
-            "content-type": "application/json",
-            "headers": {},
-            "properties": {
-                "correlation_id": task_id,
-                "reply_to": None,
-                "delivery_mode": 2,
-                "delivery_info": {
-                    "exchange": "",
-                    "routing_key": _ANALYTICS_QUEUE,
-                },
-                "body_encoding": "base64",
-                "delivery_tag": task_id,
-            },
-        }
-
-        await redis.lpush(_ANALYTICS_QUEUE, json.dumps(envelope))
-        logger.debug("Analytics event queued: %s", event.get("short_code"))
-
+        await db.analytics.insert_one(doc)
+        logger.debug("Analytics event saved for: %s", event.get("short_code"))
     except Exception as exc:
-        logger.warning("Failed to queue analytics event: %s", exc)
+        logger.warning("Failed to save analytics event: %s", exc)

@@ -5,12 +5,10 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.config import get_settings
 from app.database.database import get_db
-from app.database.models import URL
 from app.utils.qr_generator import generate_qr_bytes
 
 logger = logging.getLogger(__name__)
@@ -31,11 +29,11 @@ router = APIRouter(tags=["QR Code"])
 )
 async def get_qr_code(
     short_code: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> Response:
     """GET /qr/{short_code} — return a PNG QR code for the short URL."""
-    url_obj = await db.scalar(select(URL).where(URL.short_code == short_code))
-    if url_obj is None:
+    url_doc = await db.urls.find_one({"short_code": short_code})
+    if url_doc is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Short URL '{short_code}' not found.",

@@ -4,7 +4,7 @@ Analytics routes.
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.database.database import get_db
 from app.schemas.url import AnalyticsResponse
@@ -23,7 +23,7 @@ router = APIRouter(tags=["Analytics"])
 )
 async def get_analytics(
     short_code: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> AnalyticsResponse:
     """GET /analytics/{short_code} — return aggregated analytics data."""
     try:

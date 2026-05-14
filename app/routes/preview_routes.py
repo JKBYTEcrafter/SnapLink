@@ -6,12 +6,10 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.config import get_settings
 from app.database.database import get_db
-from app.database.models import URL
 from app.utils.preview_generator import generate_preview_card
 
 logger = logging.getLogger(__name__)
@@ -32,11 +30,11 @@ router = APIRouter(tags=["Preview"])
 )
 async def get_preview(
     short_code: str,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> Response:
     """GET /preview/{short_code} — return a PNG social preview card."""
-    url_obj = await db.scalar(select(URL).where(URL.short_code == short_code))
-    if url_obj is None:
+    url_doc = await db.urls.find_one({"short_code": short_code})
+    if url_doc is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Short URL '{short_code}' not found.",
@@ -46,8 +44,8 @@ async def get_preview(
     try:
         png_bytes = generate_preview_card(
             short_url=short_url,
-            long_url=url_obj.long_url,
-            click_count=url_obj.click_count,
+            long_url=url_doc["long_url"],
+            click_count=url_doc.get("click_count", 0),
         )
     except Exception as exc:
         logger.error("Preview generation failed for %s: %s", short_code, exc)

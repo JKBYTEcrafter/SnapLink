@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
-from sqlalchemy.ext.asyncio import AsyncSession
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from user_agents import parse as ua_parse
 
 from app.config import get_settings
@@ -47,7 +47,7 @@ _rate_limiter = RateLimiter()
 async def shorten_url(
     payload: ShortenRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
     _: None = Depends(_rate_limiter),
 ) -> ShortenResponse:
     """POST /shorten — create a shortened URL."""
@@ -93,7 +93,7 @@ async def shorten_url(
 async def bulk_shorten_urls(
     payload: BulkShortenRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
     _: None = Depends(_rate_limiter),
 ) -> BulkShortenResponse:
     """POST /shorten/bulk — shorten multiple URLs in one call."""
@@ -156,7 +156,7 @@ async def update_link(
     short_code: str,
     payload: UpdateLinkRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> ShortenResponse:
     """PATCH /links/{short_code} — update link properties."""
     try:
@@ -201,7 +201,7 @@ async def update_link(
 async def delete_link(
     short_code: str,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> None:
     """DELETE /links/{short_code} — remove link from DB and cache."""
     try:
@@ -227,7 +227,7 @@ async def delete_link(
 async def redirect_url(
     short_code: str,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
     _: None = Depends(_rate_limiter),
 ) -> RedirectResponse:
     """GET /{short_code} — cache-first redirect."""

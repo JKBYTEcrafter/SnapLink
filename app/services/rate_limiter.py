@@ -1,24 +1,28 @@
 """
-Rate limiter using Redis Sliding Window algorithm.
-Each IP gets a sorted set keyed by timestamp; old entries are pruned per request.
+Rate limiter using MongoDB — sliding window algorithm.
+Replaces the Redis sorted-set based implementation.
+
+Uses a `rate_limits` collection where each document holds a list of
+request timestamps for a given key (IP address). Old timestamps outside
+the window are purged on each request.
 """
 import logging
 import time
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, Request, status
 
 from app.config import get_settings
-from app.services.cache_service import get_redis
+from app.database.database import get_motor_db
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-_RATE_PREFIX = "rl:"
-
 
 class RateLimiter:
     """
-    FastAPI dependency implementing a per-IP sliding window rate limiter.
+    FastAPI dependency implementing a per-IP sliding window rate limiter
+    backed by MongoDB.
 
     Usage:
         @router.get("/endpoint", dependencies=[Depends(RateLimiter())])
@@ -34,38 +38,50 @@ class RateLimiter:
 
     async def __call__(self, request: Request) -> None:
         client_ip = self._get_client_ip(request)
-        key = f"{_RATE_PREFIX}{client_ip}"
+        key = f"rl:{client_ip}"
 
         try:
-            redis = get_redis()
+            db = get_motor_db()
             now = time.time()
             window_start = now - self.window_seconds
+            reset_at = datetime.now(tz=timezone.utc) + timedelta(
+                seconds=self.window_seconds + 1
+            )
 
-            pipe = redis.pipeline()
-            # Remove events older than the sliding window
-            pipe.zremrangebyscore(key, "-inf", window_start)
-            # Count remaining events in window
-            pipe.zcard(key)
-            # Add current request
-            pipe.zadd(key, {str(now): now})
-            # Set expiry on the key
-            pipe.expire(key, self.window_seconds + 1)
-            results = await pipe.execute()
+            # Atomically:
+            # 1. Pull timestamps older than the window
+            # 2. Push the current timestamp
+            # 3. Set the TTL reset_at field
+            result = await db.rate_limits.find_one_and_update(
+                {"key": key},
+                {
+                    "$pull": {"timestamps": {"$lt": window_start}},
+                    "$push": {"timestamps": now},
+                    "$set": {"reset_at": reset_at},
+                },
+                upsert=True,
+                return_document=True,  # type: ignore[call-arg]
+            )
 
-            current_count: int = results[1]
+            # Count timestamps within window after the update
+            timestamps = result.get("timestamps", []) if result else []
+            # Filter again client-side since $pull runs before $push in same op
+            current_count = sum(1 for ts in timestamps if ts >= window_start)
+            # +1 for the push we just added
+            current_count += 1
 
-            if current_count >= self.max_requests:
-                retry_after = int(self.window_seconds)
+            if current_count > self.max_requests:
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail=f"Rate limit exceeded. Try again in {retry_after} seconds.",
-                    headers={"Retry-After": str(retry_after)},
+                    detail=f"Rate limit exceeded. Try again in {self.window_seconds} seconds.",
+                    headers={"Retry-After": str(self.window_seconds)},
                 )
+
         except HTTPException:
             raise
         except Exception as exc:
-            # On Redis failure, fail open (allow request) to avoid outage
-            logger.warning("Rate limiter Redis error for IP %s: %s", client_ip, exc)
+            # On DB failure, fail open (allow request) to avoid outage
+            logger.warning("Rate limiter DB error for IP %s: %s", client_ip, exc)
 
     @staticmethod
     def _get_client_ip(request: Request) -> str:
